@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PitchXP Round & Dilution Planner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Simple styling -->
+  <style>
+    :root {
+      --primary: #38b6ff;
+      --bg: #f5f7fb;
+      --card-bg: #ffffff;
+      --border: #e1e4eb;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+
+    .app-root {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    h1, h2, h3 {
+      margin: 0 0 8px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      margin-top: 24px;
+    }
+
+    p {
+      margin: 0 0 8px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(56, 182, 255, 0.1);
+      color: var(--primary);
+      font-size: 0.8rem;
+      margin-bottom: 8px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
+      margin-top: 12px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .card-header h2 {
+      margin: 0;
+    }
+
+    .pill {
+      background: rgba(148, 163, 184, 0.2);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .col {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: var(--text-muted);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(56, 182, 255, 0.2);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    th {
+      background: #f9fafb;
+      font-weight: 600;
+      font-size: 0.78rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 6px 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-secondary {
+      background: #e5f4ff;
+      color: #0369a1;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+    }
+
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 0.75rem;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .tag-founder {
+      background: rgba(56, 182, 255, 0.1);
+      color: #0369a1;
+    }
+
+    .tag-investor {
+      background: rgba(34, 197, 94, 0.08);
+      color: #15803d;
+    }
+
+    .tag-esop {
+      background: rgba(249, 115, 22, 0.1);
+      color: #ea580c;
+    }
+
+    .warning {
+      color: var(--danger);
+      font-size: 0.75rem;
+      margin-top: 4px;
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .divider {
+      border-top: 1px dashed var(--border);
+      margin: 12px 0;
+    }
+
+    .pill-tabs {
+      display: inline-flex;
+      border-radius: 999px;
+      background: #e5e7eb;
+      padding: 2px;
+      margin-bottom: 8px;
+    }
+
+    .pill-tab {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .pill-tab.active {
+      background: #ffffff;
+      color: #111827;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.2);
+    }
+
+    .pill-tab:not(.active) {
+      color: #6b7280;
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .pill-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(56, 182, 255, 0.12);
+      font-size: 0.7rem;
+      color: #0369a1;
+    }
+
+    .pill-chip span {
+      font-weight: 600;
+    }
+  </style>
+
+  <!-- React + ReactDOM + Babel (for JSX without build step) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+
+const { useState, useMemo } = React;
+
+// Utility: generate simple IDs
+const uid = () => Math.random().toString(36).substring(2, 9);
+
+// Stakeholder type → tag class
+const stakeholderTagClass = (type) => {
+  if (type === "Founder") return "tag tag-founder";
+  if (type === "Investor") return "tag tag-investor";
+  if (type === "ESOP") return "tag tag-esop";
+  return "tag";
+};
+
+// Compute post-round ownerships for a simple equity round
+function applyEquityRound(prevStakeholders, round) {
+  const {
+    amountRaised,
+    preMoneyValuation,
+    targetEquityPercent,
+    esopTopUpPercentPostRound,
+    name
+  } = round;
+
+  if (!prevStakeholders.length) return prevStakeholders.map(s => ({...s}));
+
+  let investorPercent = 0;
+
+  if (targetEquityPercent && targetEquityPercent > 0) {
+    investorPercent = targetEquityPercent;
+  } else if (preMoneyValuation && preMoneyValuation > 0 && amountRaised && amountRaised > 0) {
+    const postMoney = preMoneyValuation + amountRaised;
+    investorPercent = (amountRaised / postMoney) * 100;
+  } else {
+    // If no valuation/percent given, assume 10% sold
+    investorPercent = 10;
+  }
+
+  let esopTarget = esopTopUpPercentPostRound || null;
+
+  // Clone stakeholders
+  let stakeholders = prevStakeholders.map(s => ({ ...s }));
+
+  // Ensure ESOP exists if target set
+  if (esopTarget !== null) {
+    let esop = stakeholders.find(s => s.type === "ESOP");
+    if (!esop) {
+      stakeholders.push({
+        id: uid(),
+        name: "ESOP Pool",
+        type: "ESOP",
+        ownershipPercent: esopTarget
+      });
+    }
+  }
+
+  // Compute current ESOP and non-ESOP sums
+  let esopStake = stakeholders.find(s => s.type === "ESOP");
+  let currentEsop = esopStake ? esopStake.ownershipPercent : 0;
+  let sumNonEsop = stakeholders
+    .filter(s => s.type !== "ESOP")
+    .reduce((acc, s) => acc + (s.ownershipPercent || 0), 0);
+
+  // Decide ESOP target post-round
+  let esopPost = esopTarget !== null ? esopTarget : currentEsop;
+
+  let remainingForNonEsop = 100 - investorPercent - esopPost;
+  if (remainingForNonEsop < 0) {
+    remainingForNonEsop = 0;
+  }
+
+  const scaleFactor = sumNonEsop > 0 ? remainingForNonEsop / sumNonEsop : 1;
+
+  // Scale non-ESOP
+  stakeholders = stakeholders.map(s => {
+    if (s.type === "ESOP") {
+      return { ...s, ownershipPercent: esopPost };
+    } else {
+      return {
+        ...s,
+        ownershipPercent: (s.ownershipPercent || 0) * scaleFactor
+      };
+    }
+  });
+
+  // Add new investor stakeholder
+  const investorName = `${name || "New Round"} Investor`;
+  stakeholders.push({
+    id: uid(),
+    name: investorName,
+    type: "Investor",
+    ownershipPercent: investorPercent,
+    investedAmount: amountRaised || 0
+  });
+
+  return stakeholders;
+}
+
+// Simple exit waterfall: 1x non-participating preference
+function computeExitPayouts(stakeholders, exitValue, multiple = 1) {
+  if (!exitValue || exitValue <= 0) return [];
+
+  const investors = stakeholders.filter(s => s.type === "Investor");
+  const others = stakeholders.filter(s => s.type !== "Investor");
+
+  let totalPref = 0;
+  const investorPrefs = investors.map(inv => {
+    const invested = inv.investedAmount || 0;
+    const ownershipShare = (inv.ownershipPercent || 0) / 100 * exitValue;
+    const pref = Math.min(invested * multiple, ownershipShare || exitValue);
+    totalPref += pref;
+    return { id: inv.id, pref };
+  });
+
+  let remaining = Math.max(exitValue - totalPref, 0);
+
+  const allHolders = [...investors, ...others];
+  const totalOwnership = allHolders.reduce(
+    (sum, s) => sum + (s.ownershipPercent || 0),
+    0
+  );
+
+  return allHolders.map(holder => {
+    const baseShare =
+      totalOwnership > 0
+        ? (holder.ownershipPercent || 0) / totalOwnership * remaining
+        : 0;
+
+    let pref = 0;
+    if (holder.type === "Investor") {
+      const prefEntry = investorPrefs.find(p => p.id === holder.id);
+      pref = prefEntry ? prefEntry.pref : 0;
+    }
+
+    const payout = pref + baseShare;
+
+    return {
+      id: holder.id,
+      name: holder.name,
+      type: holder.type,
+      ownershipPercent: holder.ownershipPercent,
+      investedAmount: holder.investedAmount || 0,
+      payout
+    };
+  });
+}
+
+function App() {
+  const [companyName, setCompanyName] = useState("My Startup");
+  const [stakeholders, setStakeholders] = useState([
+    { id: uid(), name: "Founder 1", type: "Founder", ownershipPercent: 60 },
+    { id: uid(), name: "Founder 2", type: "Founder", ownershipPercent: 30 },
+    { id: uid(), name: "ESOP Pool", type: "ESOP", ownershipPercent: 10 }
+  ]);
+
+  const [newStakeholder, setNewStakeholder] = useState({
+    name: "",
+    type: "Founder",
+    ownershipPercent: ""
+  });
+
+  const [rounds, setRounds] = useState([]);
+  const [newRound, setNewRound] = useState({
+    name: "Seed",
+    roundType: "Equity",
+    amountRaised: "",
+    preMoneyValuation: "",
+    targetEquityPercent: "",
+    esopTopUpPercentPostRound: ""
+  });
+
+  const [activeTab, setActiveTab] = useState("capTable"); // 'capTable' | 'exit'
+  const [exitValue, setExitValue] = useState(10000000); // 1 Cr default
+  const [liquidationMultiple, setLiquidationMultiple] = useState(1);
+
+  // Sum of current ownership
+  const totalOwnership = stakeholders.reduce(
+    (sum, s) => sum + (parseFloat(s.ownershipPercent) || 0),
+    0
+  );
+
+  // Simulated cap table after all rounds
+  const simulatedStakeholders = useMemo(() => {
+    let current = stakeholders.map(s => ({ ...s }));
+    rounds.forEach(r => {
+      if (r.roundType === "Equity") {
+        current = applyEquityRound(current, {
+          ...r,
+          amountRaised: parseFloat(r.amountRaised) || 0,
+          preMoneyValuation: parseFloat(r.preMoneyValuation) || 0,
+          targetEquityPercent: r.targetEquityPercent
+            ? parseFloat(r.targetEquityPercent)
+            : 0,
+          esopTopUpPercentPostRound: r.esopTopUpPercentPostRound
+            ? parseFloat(r.esopTopUpPercentPostRound)
+            : null
+        });
+      } else {
+        // SAFE / Convertible Note → keep simple placeholder (no math yet)
+        // You can extend this later.
+      }
+    });
+
+    return current;
+  }, [stakeholders, rounds]);
+
+  const exitPayouts = useMemo(() => {
+    return computeExitPayouts(
+      simulatedStakeholders,
+      parseFloat(exitValue) || 0,
+      parseFloat(liquidationMultiple) || 1
+    );
+  }, [simulatedStakeholders, exitValue, liquidationMultiple]);
+
+  // Handlers
+  const handleAddStakeholder = () => {
+    const pct = parseFloat(newStakeholder.ownershipPercent);
+    if (!newStakeholder.name || isNaN(pct)) return;
+    setStakeholders(prev => [
+      ...prev,
+      {
+        id: uid(),
+        name: newStakeholder.name,
+        type: newStakeholder.type,
+        ownershipPercent: pct
+      }
+    ]);
+    setNewStakeholder({ name: "", type: "Founder", ownershipPercent: "" });
+  };
+
+  const handleStakeholderChange = (id, field, value) => {
+    setStakeholders(prev =>
+      prev.map(s =>
+        s.id === id
+          ? {
+              ...s,
+              [field]:
+                field === "ownershipPercent" ? parseFloat(value) || 0 : value
+            }
+          : s
+      )
+    );
+  };
+
+  const handleRemoveStakeholder = (id) => {
+    setStakeholders(prev => prev.filter(s => s.id !== id));
+  };
+
+  const handleAddRound = () => {
+    if (!newRound.name) return;
+    setRounds(prev => [
+      ...prev,
+      {
+        id: uid(),
+        ...newRound
+      }
+    ]);
+    setNewRound({
+      name: "Next Round",
+      roundType: "Equity",
+      amountRaised: "",
+      preMoneyValuation: "",
+      targetEquityPercent: "",
+      esopTopUpPercentPostRound: ""
+    });
+  };
+
+  const handleRoundChange = (id, field, value) => {
+    setRounds(prev =>
+      prev.map(r => (r.id === id ? { ...r, [field]: value } : r))
+    );
+  };
+
+  const handleRemoveRound = (id) => {
+    setRounds(prev => prev.filter(r => r.id !== id));
+  };
+
+  const ownershipWarning =
+    Math.abs(totalOwnership - 100) > 0.01
+      ? `Total ownership is ${totalOwnership.toFixed(
+          2
+        )}%. Adjust to make it 100%.`
+      : null;
+
+  return (
+    <div className="app-root">
+      <span className="badge">PitchXP Tool • Open Source MVP</span>
+      <h1>Round &amp; Dilution Planner</h1>
+      <p>
+        Not a legal cap table — just clarity, simulation, and smarter fundraising
+        decisions.
+      </p>
+
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <h2>{companyName}</h2>
+            <p>Start with your current ownership, then add funding rounds.</p>
+          </div>
+          <div className="pill">Equity journey simulator</div>
+        </div>
+        <div className="row">
+          <div className="col">
+            <label>Company name</label>
+            <input
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="Your startup name"
+            />
+          </div>
+          <div className="col">
+            <label>Quick hint</label>
+            <div className="pill-chip">
+              <span>Tip</span> Don’t guess dilution — visualize it.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="pill-tabs">
+          <div
+            className={`pill-tab ${activeTab === "capTable" ? "active" : ""}`}
+            onClick={() => setActiveTab("capTable")}
+          >
+            Cap table &amp; rounds
+          </div>
+          <div
+            className={`pill-tab ${activeTab === "exit" ? "active" : ""}`}
+            onClick={() => setActiveTab("exit")}
+          >
+            Exit scenarios
+          </div>
+        </div>
+      </div>
+
+      {activeTab === "capTable" && (
+        <>
+          {/* Current cap table */}
+          <div className="card">
+            <div className="card-header">
+              <h2>Current cap table</h2>
+              <span className="muted">
+                This is where you are <strong>today</strong>.
+              </span>
+            </div>
+            <p className="muted">
+              Add founders, ESOP and any existing investors. Percentages should
+              add up to 100%.
+            </p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Stakeholder</th>
+                  <th>Type</th>
+                  <th style={{ width: "120px" }}>% Ownership</th>
+                  <th style={{ width: "70px" }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {stakeholders.map(s => (
+                  <tr key={s.id}>
+                    <td>
+                      <input
+                        value={s.name}
+                        onChange={(e) =>
+                          handleStakeholderChange(s.id, "name", e.target.value)
+                        }
+                      />
+                    </td>
+                    <td>
+                      <select
+                        value={s.type}
+                        onChange={(e) =>
+                          handleStakeholderChange(s.id, "type", e.target.value)
+                        }
+                      >
+                        <option value="Founder">Founder</option>
+                        <option value="Investor">Investor</option>
+                        <option value="ESOP">ESOP</option>
+                        <option value="Advisor">Advisor</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={s.ownershipPercent}
+                        onChange={(e) =>
+                          handleStakeholderChange(
+                            s.id,
+                            "ownershipPercent",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => handleRemoveStakeholder(s.id)}
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                <tr>
+                  <td>
+                    <input
+                      placeholder="New stakeholder"
+                      value={newStakeholder.name}
+                      onChange={(e) =>
+                        setNewStakeholder({ ...newStakeholder, name: e.target.value })
+                      }
+                    />
+                  </td>
+                  <td>
+                    <select
+                      value={newStakeholder.type}
+                      onChange={(e) =>
+                        setNewStakeholder({ ...newStakeholder, type: e.target.value })
+                      }
+                    >
+                      <option value="Founder">Founder</option>
+                      <option value="Investor">Investor</option>
+                      <option value="ESOP">ESOP</option>
+                      <option value="Advisor">Advisor</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="%"
+                      value={newStakeholder.ownershipPercent}
+                      onChange={(e) =>
+                        setNewStakeholder({
+                          ...newStakeholder,
+                          ownershipPercent: e.target.value
+                        })
+                      }
+                    />
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleAddStakeholder}
+                    >
+                      + Add
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            {ownershipWarning && (
+              <div className="warning">{ownershipWarning}</div>
+            )}
+          </div>
+
+          {/* Rounds */}
+          <div className="card">
+            <div className="card-header">
+              <h2>Funding rounds</h2>
+              <span className="muted">
+                Model how new investment changes ownership.
+              </span>
+            </div>
+
+            {rounds.length > 0 && (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Round</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Pre-money</th>
+                    <th>% Sold (optional)</th>
+                    <th>ESOP top-up %</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rounds.map(r => (
+                    <tr key={r.id}>
+                      <td>
+                        <input
+                          value={r.name}
+                          onChange={(e) =>
+                            handleRoundChange(r.id, "name", e.target.value)
+                          }
+                        />
+                      </td>
+                      <td>
+                        <select
+                          value={r.roundType}
+                          onChange={(e) =>
+                            handleRoundChange(r.id, "roundType", e.target.value)
+                          }
+                        >
+                          <option value="Equity">Equity</option>
+                          <option value="SAFE">SAFE (placeholder)</option>
+                          <option value="ConvertibleNote">Conv. note (placeholder)</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          value={r.amountRaised}
+                          onChange={(e) =>
+                            handleRoundChange(r.id, "amountRaised", e.target.value)
+                          }
+                          placeholder="e.g. 3000000"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          value={r.preMoneyValuation}
+                          onChange={(e) =>
+                            handleRoundChange(r.id, "preMoneyValuation", e.target.value)
+                          }
+                          placeholder="e.g. 15000000"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          value={r.targetEquityPercent}
+                          onChange={(e) =>
+                            handleRoundChange(r.id, "targetEquityPercent", e.target.value)
+                          }
+                          placeholder="Optional"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          value={r.esopTopUpPercentPostRound}
+                          onChange={(e) =>
+                            handleRoundChange(
+                              r.id,
+                              "esopTopUpPercentPostRound",
+                              e.target.value
+                            )
+                          }
+                          placeholder="e.g. 10"
+                        />
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => handleRemoveRound(r.id)}
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            <div className="divider" />
+
+            <h3 style={{ fontSize: "0.95rem", marginBottom: 8 }}>Add a new round</h3>
+            <div className="row">
+              <div className="col">
+                <label>Round name</label>
+                <input
+                  value={newRound.name}
+                  onChange={(e) =>
+                    setNewRound({ ...newRound, name: e.target.value })
+                  }
+                  placeholder="Seed, Series A, etc."
+                />
+              </div>
+              <div className="col">
+                <label>Type</label>
+                <select
+                  value={newRound.roundType}
+                  onChange={(e) =>
+                    setNewRound({ ...newRound, roundType: e.target.value })
+                  }
+                >
+                  <option value="Equity">Equity</option>
+                  <option value="SAFE">SAFE (placeholder)</option>
+                  <option value="ConvertibleNote">Convertible Note (placeholder)</option>
+                </select>
+              </div>
+            </div>
+            <div className="row" style={{ marginTop: 8 }}>
+              <div className="col">
+                <label>Amount raised</label>
+                <input
+                  type="number"
+                  value={newRound.amountRaised}
+                  onChange={(e) =>
+                    setNewRound({ ...newRound, amountRaised: e.target.value })
+                  }
+                  placeholder="e.g. 3000000"
+                />
+              </div>
+              <div className="col">
+                <label>Pre-money valuation</label>
+                <input
+                  type="number"
+                  value={newRound.preMoneyValuation}
+                  onChange={(e) =>
+                    setNewRound({
+                      ...newRound,
+                      preMoneyValuation: e.target.value
+                    })
+                  }
+                  placeholder="e.g. 15000000"
+                />
+              </div>
+            </div>
+            <div className="row" style={{ marginTop: 8 }}>
+              <div className="col">
+                <label>Target % sold (optional)</label>
+                <input
+                  type="number"
+                  value={newRound.targetEquityPercent}
+                  onChange={(e) =>
+                    setNewRound({
+                      ...newRound,
+                      targetEquityPercent: e.target.value
+                    })
+                  }
+                  placeholder="e.g. 20"
+                />
+                <span className="muted">
+                  If filled, we'll use this instead of valuation math.
+                </span>
+              </div>
+              <div className="col">
+                <label>ESOP top-up post-round (optional)</label>
+                <input
+                  type="number"
+                  value={newRound.esopTopUpPercentPostRound}
+                  onChange={(e) =>
+                    setNewRound({
+                      ...newRound,
+                      esopTopUpPercentPostRound: e.target.value
+                    })
+                  }
+                  placeholder="e.g. 10"
+                />
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+              <button className="btn btn-primary" onClick={handleAddRound}>
+                + Add round
+              </button>
+            </div>
+          </div>
+
+          {/* Simulated cap table */}
+          <div className="card">
+            <div className="card-header">
+              <h2>Simulated cap table</h2>
+              <span className="muted">
+                This is where you might stand <strong>after all listed rounds.</strong>
+              </span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Stakeholder</th>
+                  <th>Type</th>
+                  <th>% Ownership</th>
+                  <th>Invested (approx)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {simulatedStakeholders.map(s => (
+                  <tr key={s.id}>
+                    <td>{s.name}</td>
+                    <td>
+                      <span className={stakeholderTagClass(s.type)}>{s.type}</span>
+                    </td>
+                    <td>{(s.ownershipPercent || 0).toFixed(2)}%</td>
+                    <td>
+                      {s.type === "Investor" && s.investedAmount
+                        ? s.investedAmount.toLocaleString()
+                        : "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="footer-note">
+              You can export this table to your pitch deck or share it in your PitchXP
+              card as a visual explanation of founder dilution.
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === "exit" && (
+        <div className="card">
+          <div className="card-header">
+            <h2>Exit scenarios (simple 1x non-participating)</h2>
+            <span className="muted">
+              Educational only — not legal or tax advice.
+            </span>
+          </div>
+
+          <div className="row">
+            <div className="col">
+              <label>Exit value</label>
+              <input
+                type="number"
+                value={exitValue}
+                onChange={(e) => setExitValue(e.target.value)}
+              />
+            </div>
+            <div className="col">
+              <label>Liquidation multiple</label>
+              <select
+                value={liquidationMultiple}
+                onChange={(e) => setLiquidationMultiple(e.target.value)}
+              >
+                <option value={1}>1x non-participating</option>
+                <option value={2}>2x non-participating</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="divider" />
+
+          <table>
+            <thead>
+              <tr>
+                <th>Stakeholder</th>
+                <th>Type</th>
+                <th>% Ownership</th>
+                <th>Approx. payout</th>
+              </tr>
+            </thead>
+            <tbody>
+              {exitPayouts.map(p => (
+                <tr key={p.id}>
+                  <td>{p.name}</td>
+                  <td>
+                    <span className={stakeholderTagClass(p.type)}>{p.type}</span>
+                  </td>
+                  <td>{(p.ownershipPercent || 0).toFixed(2)}%</td>
+                  <td>{p.payout.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="footer-note">
+            This is a simplified waterfall assuming 1x non-participating
+            preferences. Real deal terms can be more complex — this tool is to
+            help founders build intuition before signing.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
