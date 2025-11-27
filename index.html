@@ -26,6 +26,7 @@
       padding: 0;
       background: var(--bg);
       color: var(--text-main);
+      transition: background 0.2s ease, color 0.2s ease;
     }
 
     .app-root {
@@ -57,7 +58,7 @@
       display: inline-block;
       padding: 2px 8px;
       border-radius: 999px;
-      background: rgba(56, 182, 255, 0.1);
+      background: rgba(56, 182, 255, 0.12);
       color: var(--primary);
       font-size: 0.8rem;
       margin-bottom: 8px;
@@ -77,6 +78,8 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 8px;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .card-header h2 {
@@ -117,6 +120,8 @@
       border: 1px solid var(--border);
       font-size: 0.85rem;
       outline: none;
+      background: #ffffff;
+      color: var(--text-main);
     }
 
     input:focus, select:focus {
@@ -153,6 +158,9 @@
       cursor: pointer;
       font-size: 0.8rem;
       font-weight: 500;
+      background: var(--primary);
+      color: #ffffff;
+      text-decoration: none;
     }
 
     .btn-primary {
@@ -161,13 +169,13 @@
     }
 
     .btn-secondary {
-      background: #e5f4ff;
-      color: #0369a1;
+      background: var(--primary);
+      color: #ffffff;
     }
 
     .btn-ghost {
-      background: transparent;
-      color: var(--text-muted);
+      background: var(--primary);
+      color: #ffffff;
     }
 
     .btn-sm {
@@ -265,6 +273,99 @@
     .pill-chip span {
       font-weight: 600;
     }
+
+    .top-controls {
+      margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .control-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .control-group label {
+      margin-bottom: 0;
+    }
+
+    .inline-select {
+      width: auto;
+      min-width: 120px;
+    }
+
+    @media print {
+      .top-controls,
+      .pill-tabs,
+      .btn,
+      .badge {
+        display: none !important;
+      }
+      body {
+        background: #ffffff;
+      }
+      .card {
+        box-shadow: none;
+      }
+    }
+
+    /* Dark mode overrides */
+    body.dark {
+      background: #020617;
+      color: #e5e7eb;
+    }
+
+    body.dark .card {
+      background: #020617;
+      border-color: #1f2937;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+    }
+
+    body.dark input,
+    body.dark select {
+      background: #020617;
+      color: #e5e7eb;
+      border-color: #1f2937;
+    }
+
+    body.dark th {
+      background: #111827;
+      color: #e5e7eb;
+    }
+
+    body.dark .pill {
+      background: #111827;
+      color: #e5e7eb;
+    }
+
+    body.dark .badge {
+      background: rgba(56,182,255,0.16);
+      color: #38b6ff;
+    }
+
+    body.dark p,
+    body.dark .muted,
+    body.dark label {
+      color: #9ca3af;
+    }
+
+    body.dark .pill-tabs {
+      background: #111827;
+    }
+
+    body.dark .pill-tab.active {
+      background: #1f2937;
+      color: #e5e7eb;
+    }
+
+    body.dark .pill-tab:not(.active) {
+      color: #9ca3af;
+    }
   </style>
 
   <!-- React + ReactDOM + Babel (for JSX without build step) -->
@@ -277,7 +378,7 @@
 
 <script type="text/babel">
 
-const { useState, useMemo } = React;
+const { useState, useMemo, useEffect } = React;
 
 // Utility: generate simple IDs
 const uid = () => Math.random().toString(36).substring(2, 9);
@@ -289,6 +390,18 @@ const stakeholderTagClass = (type) => {
   if (type === "ESOP") return "tag tag-esop";
   return "tag";
 };
+
+// Formatting based on currency
+function makeCurrencyFormatter(currency) {
+  return (value) => {
+    if (value === null || value === undefined || value === "" || isNaN(value)) return "-";
+    const num = Number(value) || 0;
+    if (currency === "INR") {
+      return "₹ " + new Intl.NumberFormat("en-IN").format(num);
+    }
+    return "$ " + new Intl.NumberFormat("en-US").format(num);
+  };
+}
 
 // Compute post-round ownerships for a simple equity round
 function applyEquityRound(prevStakeholders, round) {
@@ -374,53 +487,108 @@ function applyEquityRound(prevStakeholders, round) {
   return stakeholders;
 }
 
-// Simple exit waterfall: 1x non-participating preference
-function computeExitPayouts(stakeholders, exitValue, multiple = 1) {
+// Exit waterfall: supports non-participating & participating
+function computeExitPayouts(stakeholders, exitValue, multiple = 1, preferenceType = "NonParticipating") {
   if (!exitValue || exitValue <= 0) return [];
 
   const investors = stakeholders.filter(s => s.type === "Investor");
   const others = stakeholders.filter(s => s.type !== "Investor");
-
-  let totalPref = 0;
-  const investorPrefs = investors.map(inv => {
-    const invested = inv.investedAmount || 0;
-    const ownershipShare = (inv.ownershipPercent || 0) / 100 * exitValue;
-    const pref = Math.min(invested * multiple, ownershipShare || exitValue);
-    totalPref += pref;
-    return { id: inv.id, pref };
-  });
-
-  let remaining = Math.max(exitValue - totalPref, 0);
-
   const allHolders = [...investors, ...others];
+
   const totalOwnership = allHolders.reduce(
     (sum, s) => sum + (s.ownershipPercent || 0),
     0
   );
 
-  return allHolders.map(holder => {
-    const baseShare =
-      totalOwnership > 0
-        ? (holder.ownershipPercent || 0) / totalOwnership * remaining
-        : 0;
+  if (preferenceType === "NonParticipating") {
+    // Non-participating: investor gets better of preference or pro-rata
+    let totalPref = 0;
+    const investorPrefs = investors.map(inv => {
+      const invested = inv.investedAmount || 0;
+      const ownershipShare = (inv.ownershipPercent || 0) / 100 * exitValue;
+      const pref = Math.min(invested * multiple, ownershipShare || exitValue);
+      totalPref += pref;
+      return { id: inv.id, pref };
+    });
 
-    let pref = 0;
-    if (holder.type === "Investor") {
-      const prefEntry = investorPrefs.find(p => p.id === holder.id);
-      pref = prefEntry ? prefEntry.pref : 0;
+    let remaining = Math.max(exitValue - totalPref, 0);
+
+    return allHolders.map(holder => {
+      const baseShare =
+        totalOwnership > 0
+          ? (holder.ownershipPercent || 0) / totalOwnership * remaining
+          : 0;
+
+      let pref = 0;
+      if (holder.type === "Investor") {
+        const prefEntry = investorPrefs.find(p => p.id === holder.id);
+        pref = prefEntry ? prefEntry.pref : 0;
+      }
+
+      const payout = pref + baseShare;
+
+      return {
+        id: holder.id,
+        name: holder.name,
+        type: holder.type,
+        ownershipPercent: holder.ownershipPercent,
+        investedAmount: holder.investedAmount || 0,
+        payout
+      };
+    });
+  } else {
+    // Participating: investors get preference first, then share remaining pro-rata
+    let totalPref = 0;
+    const investorPrefs = investors.map(inv => {
+      const invested = inv.investedAmount || 0;
+      const pref = invested * multiple;
+      totalPref += pref;
+      return { id: inv.id, pref };
+    });
+
+    if (totalPref >= exitValue) {
+      // Not enough to pay everyone their full pref → scale down
+      const scale = exitValue / totalPref;
+      return allHolders.map(holder => {
+        let payout = 0;
+        if (holder.type === "Investor") {
+          const prefEntry = investorPrefs.find(p => p.id === holder.id);
+          payout = prefEntry ? prefEntry.pref * scale : 0;
+        }
+        return {
+          id: holder.id,
+          name: holder.name,
+          type: holder.type,
+          ownershipPercent: holder.ownershipPercent,
+          investedAmount: holder.investedAmount || 0,
+          payout
+        };
+      });
     }
 
-    const payout = pref + baseShare;
+    const remaining = exitValue - totalPref;
 
-    return {
-      id: holder.id,
-      name: holder.name,
-      type: holder.type,
-      ownershipPercent: holder.ownershipPercent,
-      investedAmount: holder.investedAmount || 0,
-      payout
-    };
-  });
+    return allHolders.map(holder => {
+      const proRata =
+        totalOwnership > 0
+          ? (holder.ownershipPercent || 0) / totalOwnership * remaining
+          : 0;
+      let pref = 0;
+      if (holder.type === "Investor") {
+        const prefEntry = investorPrefs.find(p => p.id === holder.id);
+        pref = prefEntry ? prefEntry.pref : 0;
+      }
+      const payout = pref + proRata;
+      return {
+        id: holder.id,
+        name: holder.name,
+        type: holder.type,
+        ownershipPercent: holder.ownershipPercent,
+        investedAmount: holder.investedAmount || 0,
+        payout
+      };
+    });
+  }
 }
 
 function App() {
@@ -448,8 +616,25 @@ function App() {
   });
 
   const [activeTab, setActiveTab] = useState("capTable"); // 'capTable' | 'exit'
-  const [exitValue, setExitValue] = useState(10000000); // 1 Cr default
+  const [exitValue, setExitValue] = useState(10000000);
   const [liquidationMultiple, setLiquidationMultiple] = useState(1);
+  const [preferenceType, setPreferenceType] = useState("NonParticipating"); // or "Participating"
+
+  const [currency, setCurrency] = useState("INR"); // "INR" | "USD"
+  const [darkMode, setDarkMode] = useState(false);
+
+  const formatCurrency = useMemo(
+    () => makeCurrencyFormatter(currency),
+    [currency]
+  );
+
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add("dark");
+    } else {
+      document.body.classList.remove("dark");
+    }
+  }, [darkMode]);
 
   // Sum of current ownership
   const totalOwnership = stakeholders.reduce(
@@ -457,15 +642,21 @@ function App() {
     0
   );
 
-  // Simulated cap table after all rounds
-  const simulatedStakeholders = useMemo(() => {
+  // Simulated cap table after all rounds + summary stats
+  const { simulatedStakeholders, totalRaised, latestPostMoney } = useMemo(() => {
     let current = stakeholders.map(s => ({ ...s }));
+    let totalRaisedLocal = 0;
+    let latestPostMoneyLocal = null;
+
     rounds.forEach(r => {
+      const amountRaised = parseFloat(r.amountRaised) || 0;
+      const preMoneyValuation = parseFloat(r.preMoneyValuation) || 0;
+
       if (r.roundType === "Equity") {
         current = applyEquityRound(current, {
           ...r,
-          amountRaised: parseFloat(r.amountRaised) || 0,
-          preMoneyValuation: parseFloat(r.preMoneyValuation) || 0,
+          amountRaised,
+          preMoneyValuation,
           targetEquityPercent: r.targetEquityPercent
             ? parseFloat(r.targetEquityPercent)
             : 0,
@@ -473,22 +664,35 @@ function App() {
             ? parseFloat(r.esopTopUpPercentPostRound)
             : null
         });
+        if (amountRaised > 0) {
+          totalRaisedLocal += amountRaised;
+        }
+        if (amountRaised > 0 && preMoneyValuation > 0) {
+          latestPostMoneyLocal = preMoneyValuation + amountRaised;
+        }
       } else {
         // SAFE / Convertible Note → keep simple placeholder (no math yet)
-        // You can extend this later.
+        if (amountRaised > 0) {
+          totalRaisedLocal += amountRaised;
+        }
       }
     });
 
-    return current;
+    return {
+      simulatedStakeholders: current,
+      totalRaised: totalRaisedLocal,
+      latestPostMoney: latestPostMoneyLocal
+    };
   }, [stakeholders, rounds]);
 
   const exitPayouts = useMemo(() => {
     return computeExitPayouts(
       simulatedStakeholders,
       parseFloat(exitValue) || 0,
-      parseFloat(liquidationMultiple) || 1
+      parseFloat(liquidationMultiple) || 1,
+      preferenceType
     );
-  }, [simulatedStakeholders, exitValue, liquidationMultiple]);
+  }, [simulatedStakeholders, exitValue, liquidationMultiple, preferenceType]);
 
   // Handlers
   const handleAddStakeholder = () => {
@@ -524,6 +728,31 @@ function App() {
     setStakeholders(prev => prev.filter(s => s.id !== id));
   };
 
+  const updateRoundWithLinkedFields = (round, field, value) => {
+    let updated = { ...round, [field]: value };
+
+    const amount = parseFloat(updated.amountRaised) || 0;
+    let pre = parseFloat(updated.preMoneyValuation) || 0;
+    let pct = parseFloat(updated.targetEquityPercent) || 0;
+
+    if (field === "targetEquityPercent") {
+      pct = parseFloat(value) || 0;
+      if (amount > 0 && pct > 0 && pct < 100) {
+        const preMoney = amount * (100 / pct - 1);
+        updated.preMoneyValuation = preMoney.toFixed(0);
+      }
+    } else if (field === "preMoneyValuation") {
+      pre = parseFloat(value) || 0;
+      if (amount > 0 && pre > 0) {
+        const postMoney = pre + amount;
+        const newPct = (amount / postMoney) * 100;
+        updated.targetEquityPercent = newPct.toFixed(2);
+      }
+    }
+
+    return updated;
+  };
+
   const handleAddRound = () => {
     if (!newRound.name) return;
     setRounds(prev => [
@@ -545,8 +774,14 @@ function App() {
 
   const handleRoundChange = (id, field, value) => {
     setRounds(prev =>
-      prev.map(r => (r.id === id ? { ...r, [field]: value } : r))
+      prev.map(r =>
+        r.id === id ? updateRoundWithLinkedFields(r, field, value) : r
+      )
     );
+  };
+
+  const handleNewRoundChange = (field, value) => {
+    setNewRound(prev => updateRoundWithLinkedFields(prev, field, value));
   };
 
   const handleRemoveRound = (id) => {
@@ -560,9 +795,13 @@ function App() {
         )}%. Adjust to make it 100%.`
       : null;
 
+  const handleDownloadPdf = () => {
+    window.print(); // Browser's "Save as PDF"
+  };
+
   return (
     <div className="app-root">
-      <span className="badge">PitchXP Tool • Open Source MVP</span>
+      <span className="badge">PitchXP Tool • Dilution Simulator (MVP)</span>
       <h1>Round &amp; Dilution Planner</h1>
       <p>
         Not a legal cap table — just clarity, simulation, and smarter fundraising
@@ -595,8 +834,8 @@ function App() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {/* Top controls: tabs, currency, theme, PDF */}
+      <div className="top-controls">
         <div className="pill-tabs">
           <div
             className={`pill-tab ${activeTab === "capTable" ? "active" : ""}`}
@@ -609,6 +848,35 @@ function App() {
             onClick={() => setActiveTab("exit")}
           >
             Exit scenarios
+          </div>
+        </div>
+
+        <div className="control-group">
+          <div>
+            <label style={{ fontSize: "0.75rem" }}>Currency</label>
+            <select
+              className="inline-select"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+            >
+              <option value="INR">₹ INR</option>
+              <option value="USD">$ USD</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: "0.75rem" }}>Theme</label>
+            <button
+              className="btn btn-sm"
+              onClick={() => setDarkMode(!darkMode)}
+            >
+              {darkMode ? "Switch to light" : "Switch to dark"}
+            </button>
+          </div>
+          <div>
+            <label style={{ fontSize: "0.75rem" }}>Save</label>
+            <button className="btn btn-sm" onClick={handleDownloadPdf}>
+              Download PDF
+            </button>
           </div>
         </div>
       </div>
@@ -755,7 +1023,7 @@ function App() {
                     <th>Type</th>
                     <th>Amount</th>
                     <th>Pre-money</th>
-                    <th>% Sold (optional)</th>
+                    <th>% Sold</th>
                     <th>ESOP top-up %</th>
                     <th></th>
                   </tr>
@@ -779,8 +1047,8 @@ function App() {
                           }
                         >
                           <option value="Equity">Equity</option>
-                          <option value="SAFE">SAFE (placeholder)</option>
-                          <option value="ConvertibleNote">Conv. note (placeholder)</option>
+                          <option value="SAFE">SAFE</option>
+                          <option value="ConvertibleNote">Convertible Note</option>
                         </select>
                       </td>
                       <td>
@@ -800,7 +1068,7 @@ function App() {
                           onChange={(e) =>
                             handleRoundChange(r.id, "preMoneyValuation", e.target.value)
                           }
-                          placeholder="e.g. 15000000"
+                          placeholder="auto from % sold"
                         />
                       </td>
                       <td>
@@ -810,7 +1078,7 @@ function App() {
                           onChange={(e) =>
                             handleRoundChange(r.id, "targetEquityPercent", e.target.value)
                           }
-                          placeholder="Optional"
+                          placeholder="auto from valuation"
                         />
                       </td>
                       <td>
@@ -850,7 +1118,7 @@ function App() {
                 <input
                   value={newRound.name}
                   onChange={(e) =>
-                    setNewRound({ ...newRound, name: e.target.value })
+                    handleNewRoundChange("name", e.target.value)
                   }
                   placeholder="Seed, Series A, etc."
                 />
@@ -860,58 +1128,52 @@ function App() {
                 <select
                   value={newRound.roundType}
                   onChange={(e) =>
-                    setNewRound({ ...newRound, roundType: e.target.value })
+                    handleNewRoundChange("roundType", e.target.value)
                   }
                 >
                   <option value="Equity">Equity</option>
-                  <option value="SAFE">SAFE (placeholder)</option>
-                  <option value="ConvertibleNote">Convertible Note (placeholder)</option>
+                  <option value="SAFE">SAFE</option>
+                  <option value="ConvertibleNote">Convertible Note</option>
                 </select>
               </div>
             </div>
             <div className="row" style={{ marginTop: 8 }}>
               <div className="col">
-                <label>Amount raised</label>
+                <label>Amount raised ({currency === "INR" ? "₹" : "$"})</label>
                 <input
                   type="number"
                   value={newRound.amountRaised}
                   onChange={(e) =>
-                    setNewRound({ ...newRound, amountRaised: e.target.value })
+                    handleNewRoundChange("amountRaised", e.target.value)
                   }
                   placeholder="e.g. 3000000"
                 />
               </div>
               <div className="col">
-                <label>Pre-money valuation</label>
+                <label>Pre-money valuation ({currency === "INR" ? "₹" : "$"})</label>
                 <input
                   type="number"
                   value={newRound.preMoneyValuation}
                   onChange={(e) =>
-                    setNewRound({
-                      ...newRound,
-                      preMoneyValuation: e.target.value
-                    })
+                    handleNewRoundChange("preMoneyValuation", e.target.value)
                   }
-                  placeholder="e.g. 15000000"
+                  placeholder="auto if % sold filled"
                 />
               </div>
             </div>
             <div className="row" style={{ marginTop: 8 }}>
               <div className="col">
-                <label>Target % sold (optional)</label>
+                <label>Target % sold</label>
                 <input
                   type="number"
                   value={newRound.targetEquityPercent}
                   onChange={(e) =>
-                    setNewRound({
-                      ...newRound,
-                      targetEquityPercent: e.target.value
-                    })
+                    handleNewRoundChange("targetEquityPercent", e.target.value)
                   }
-                  placeholder="e.g. 20"
+                  placeholder="auto if valuation filled"
                 />
                 <span className="muted">
-                  If filled, we'll use this instead of valuation math.
+                  Fill either pre-money or % sold — we’ll calculate the other.
                 </span>
               </div>
               <div className="col">
@@ -920,10 +1182,10 @@ function App() {
                   type="number"
                   value={newRound.esopTopUpPercentPostRound}
                   onChange={(e) =>
-                    setNewRound({
-                      ...newRound,
-                      esopTopUpPercentPostRound: e.target.value
-                    })
+                    handleNewRoundChange(
+                      "esopTopUpPercentPostRound",
+                      e.target.value
+                    )
                   }
                   placeholder="e.g. 10"
                 />
@@ -945,6 +1207,23 @@ function App() {
                 This is where you might stand <strong>after all listed rounds.</strong>
               </span>
             </div>
+
+            <div className="row" style={{ marginBottom: 8 }}>
+              <div className="col">
+                <p className="muted">
+                  Total capital raised: <strong>{formatCurrency(totalRaised)}</strong>
+                </p>
+              </div>
+              <div className="col">
+                <p className="muted">
+                  Latest estimated post-money valuation:{" "}
+                  <strong>
+                    {latestPostMoney ? formatCurrency(latestPostMoney) : "—"}
+                  </strong>
+                </p>
+              </div>
+            </div>
+
             <table>
               <thead>
                 <tr>
@@ -964,17 +1243,13 @@ function App() {
                     <td>{(s.ownershipPercent || 0).toFixed(2)}%</td>
                     <td>
                       {s.type === "Investor" && s.investedAmount
-                        ? s.investedAmount.toLocaleString()
+                        ? formatCurrency(s.investedAmount)
                         : "-"}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div className="footer-note">
-              You can export this table to your pitch deck or share it in your PitchXP
-              card as a visual explanation of founder dilution.
-            </div>
           </div>
         </>
       )}
@@ -982,7 +1257,7 @@ function App() {
       {activeTab === "exit" && (
         <div className="card">
           <div className="card-header">
-            <h2>Exit scenarios (simple 1x non-participating)</h2>
+            <h2>Exit scenarios</h2>
             <span className="muted">
               Educational only — not legal or tax advice.
             </span>
@@ -990,7 +1265,7 @@ function App() {
 
           <div className="row">
             <div className="col">
-              <label>Exit value</label>
+              <label>Exit value ({currency === "INR" ? "₹" : "$"})</label>
               <input
                 type="number"
                 value={exitValue}
@@ -998,13 +1273,23 @@ function App() {
               />
             </div>
             <div className="col">
+              <label>Preference type</label>
+              <select
+                value={preferenceType}
+                onChange={(e) => setPreferenceType(e.target.value)}
+              >
+                <option value="NonParticipating">Non-participating</option>
+                <option value="Participating">Participating</option>
+              </select>
+            </div>
+            <div className="col">
               <label>Liquidation multiple</label>
               <select
                 value={liquidationMultiple}
                 onChange={(e) => setLiquidationMultiple(e.target.value)}
               >
-                <option value={1}>1x non-participating</option>
-                <option value={2}>2x non-participating</option>
+                <option value={1}>1x</option>
+                <option value={2}>2x</option>
               </select>
             </div>
           </div>
@@ -1028,16 +1313,15 @@ function App() {
                     <span className={stakeholderTagClass(p.type)}>{p.type}</span>
                   </td>
                   <td>{(p.ownershipPercent || 0).toFixed(2)}%</td>
-                  <td>{p.payout.toLocaleString()}</td>
+                  <td>{formatCurrency(p.payout)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
           <div className="footer-note">
-            This is a simplified waterfall assuming 1x non-participating
-            preferences. Real deal terms can be more complex — this tool is to
-            help founders build intuition before signing.
+            This is a simplified waterfall using the selected preference type and multiple.
+            Real deal terms can be more complex — this tool is to help build intuition before signing.
           </div>
         </div>
       )}
